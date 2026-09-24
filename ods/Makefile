@@ -111,6 +111,7 @@ test: ## Run unit and contract tests
 	@echo "=== restore refuses empty backup config ==="
 	@bash tests/test-restore-empty-config.sh
 	@bash tests/test-lifecycle-prompts-noninteractive.sh
+	@bash tests/test-restore-safety-ux.sh
 	@echo ""
 	@echo "=== atomic .env writes ==="
 	@bash tests/test-atomic-env-writes.sh
@@ -169,6 +170,7 @@ test: ## Run unit and contract tests
 	@bash tests/test-backup-integrity.sh
 	@bash tests/test-backup-restore-roundtrip.sh
 	@bash tests/test-backup-macos-appledouble.sh
+	@bash tests/test-disk-space-preflight.sh
 	@python3 tests/test-rsync-transfer-failures.py
 	@echo ""
 	@echo "=== ods-update.sh rollback picks the newest backup ==="
@@ -221,6 +223,9 @@ test: ## Run unit and contract tests
 	@bash tests/test-secret-security.sh
 	@bash tests/test-openclaw-device-auth-default.sh
 	@bash tests/contracts/test-security-suites-wired.sh
+	@echo ""
+	@echo "=== installer temp file cleanup contract ==="
+	@bash tests/test-tmpfile-cleanup.sh
 	@echo ""
 	@echo "=== NVIDIA multi-GPU visibility contract ==="
 	@bash tests/test-multigpu-nvidia-visibility.sh
