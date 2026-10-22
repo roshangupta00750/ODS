@@ -1755,6 +1755,37 @@ def test_a_held_model_change_names_the_owner_way_out_and_keeps_the_hold(error):
     assert 'clean install' not in message
 
 
+@pytest.mark.parametrize('pending,expected', [
+    ({'kind': 'access', 'phase': 'applying'}, 'source-previous-access-pending'),
+    ({'phase': 'applying'}, 'source-previous-access-pending'),  # legacy access journal
+    ({'kind': 'model', 'transaction_id': 'd' * 64}, 'source-previous-hold-pending'),
+    ({'kind': 'settings', 'phase': 'applying'}, 'source-previous-hold-pending'),
+])
+def test_an_unfinished_access_journal_is_not_reported_as_a_model_change(tmp_path, monkeypatch, pending, expected):
+    # A restart during the startup access re-check leaves an access journal in
+    # "applying"; the Models page has no switch to recover for it.
+    state = tmp_path / 'state'
+    (state / 'source-upgrade').mkdir(parents=True)
+    (state / 'transition.json').write_text('{}')
+    files = {'extensions/services/pixel-edge/compose.yaml': b'services: {}\n',
+             'extensions/services/litellm/compose.yaml': b'services: {}\n'}
+    monkeypatch.setattr(upgrade, 'read_file', lambda root, name, uid, *, candidate=False:
+                        (dict(sha256=upgrade.sha(files[name]), mode=0o644), files[name]))
+    monkeypatch.setattr(upgrade, '_protected_json', lambda path, uid=0: (pending, 'c' * 64))
+    manager = SimpleNamespace(install=tmp_path / 'install', state=state / 'source-upgrade', journal=lambda: None)
+    account = SimpleNamespace(pw_dir=str(tmp_path / 'home'), pw_uid=1000)
+    with pytest.raises(upgrade.UpgradeError, match=f'^{expected}$'):
+        upgrade._stage(manager, account, str(tmp_path / 'candidate'), 'b' * 40)
+
+
+def test_an_unfinished_access_change_names_restore_sandbox():
+    message = upgrade._failure_message(upgrade.UpgradeError('source-previous-access-pending'))
+    assert '(reason: source-previous-access-pending)' in message
+    assert 'Portal permissions' in message and 'Restore Sandbox' in message
+    assert 'run the installer again' in message
+    assert 'Recover model switch' not in message and 'ods model recover' not in message
+
+
 def test_other_hold_refusals_keep_the_generic_preserve_text():
     message = upgrade._failure_message(upgrade.UpgradeError('source-resume-identity-changed'))
     assert 'Preserve any existing admission hold' in message

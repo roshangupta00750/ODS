@@ -1476,6 +1476,10 @@ def _stage(manager, account, source, requested_ref):
         pending, _ = _protected_json(manager.state.parent / 'transition.json')
         if (existing is None or existing['hold'] is None
                 or pending.get('kind') != 'model' or pending.get('transaction_id') != existing['hold']):
+            # An access journal (legacy ones have no kind) is restored from the
+            # Portal permissions card; the Models page has nothing to recover.
+            if pending.get('kind', 'access') == 'access':
+                raise UpgradeError('source-previous-access-pending')
             raise UpgradeError('source-previous-hold-pending')
     marker, marker_sha = _protected_json(Path(account.pw_dir) / ".config/ods/pixel-managed.json", account.pw_uid)
     if (marker.get("schema_version") != 2 or marker.get("manager") != "ods"
@@ -1677,6 +1681,13 @@ def _failure_message(error):
                 "Pixel update did not start. Open the ODS dashboard's Models page and choose Recover model "
                 "switch (or run 'ods model recover'); if the model is still unloaded, choose Resume model "
                 "instead. Then run the installer again. The paused state and source snapshots were kept.")
+    if code == "source-previous-access-pending":
+        # A restart during the startup access re-check leaves this journal, and
+        # startup never restores it. Restore Sandbox is the owner's way out.
+        return (f"An earlier Portal permissions change did not finish{detail}, so new Portal work is held and "
+                "the Pixel update did not start. Open the ODS dashboard's Settings, go to Portal permissions and "
+                "choose Restore Sandbox. Then run the installer again. The held state and source snapshots "
+                "were kept.")
     edge_reason = {
         "source-edge-ownership-unverified": "The stopped Pixel Edge could not be bound to this installation and its original private volume.",
         "source-edge-clean-stop-required": "Pixel Edge is not a cleanly exited container; automatic restart was refused.",
