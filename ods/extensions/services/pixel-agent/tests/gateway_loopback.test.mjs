@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import {createLoopbackGatewayFetch, gatewayFetch, configFromEnv, validateConfig} from '../host/pixel_ingress.mjs';
+import {createLoopbackGatewayFetch, configFromEnv, validateConfig} from '../host/pixel_ingress.mjs';
 
 const ok = () => new Response('{"ok":true}', {headers:{'content-type':'application/json'}});
 const origin = 'http://127.0.0.1:18789';
@@ -126,7 +126,9 @@ test('real IPv4-only listener remains supported by the production transport', as
   const server=http.createServer((req,res)=>{calls.push({path:req.url,method:req.method});res.end('{"ok":true}');});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   t.after(()=>new Promise(resolve=>server.close(resolve)));
-  const response=await gatewayFetch(`http://127.0.0.1:${server.address().port}/pixel-ods/compact`,mutation);
+  // A fresh production transport: the shared gatewayFetch caches the family per
+  // port, and the next test may be handed this same ephemeral port.
+  const response=await createLoopbackGatewayFetch()(`http://127.0.0.1:${server.address().port}/pixel-ods/compact`,mutation);
   assert.equal(response.status,200);await new Response(response.body).text();
   assert.deepEqual(calls,[{path:'/health',method:'GET'},{path:'/pixel-ods/compact',method:'POST'}]);
 });
@@ -147,7 +149,7 @@ test('real IPv6 listener is selected even when the IPv4 proxy resets connections
   ipv4.on('connection',socket=>{ipv4Connections++;socket.destroy();});
   await new Promise(resolve=>ipv4.listen(port,'127.0.0.1',resolve));
   t.after(()=>new Promise(resolve=>ipv4.close(resolve)));
-  const response=await gatewayFetch(`http://127.0.0.1:${port}/pixel-ods/compact`,mutation);
+  const response=await createLoopbackGatewayFetch()(`http://127.0.0.1:${port}/pixel-ods/compact`,mutation);
   assert.equal(response.status,200);await new Response(response.body).text();
   assert.deepEqual(requests,['/health','/pixel-ods/compact']);
   assert.equal(ipv4Connections,0);
