@@ -1048,10 +1048,8 @@ def _catalog_size_estimate(model: dict) -> int | None:
     Only for the free-space check when the catalog has no exact byte size;
     integrity is still proved by the checksum after download.
     """
-    raw = model.get("size_mb")
-    if isinstance(raw, bool) or not isinstance(raw, (int, float)) or raw <= 0:
-        return None
-    return int(raw * 1_000_000)
+    size_mb = _positive_number(model.get("size_mb"))
+    return int(size_mb * 1_000_000) if size_mb else None
 
 
 _DOWNLOAD_DISK_MARGIN_MIN_BYTES = 2 * 1024 ** 3

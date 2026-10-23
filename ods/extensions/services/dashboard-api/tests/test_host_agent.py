@@ -9282,7 +9282,7 @@ class TestModelDownloadDiskSpace:
     def test_catalog_size_estimate_reads_decimal_megabytes(self):
         assert _mod._catalog_size_estimate({"size_mb": 1120}) == 1_120_000_000
         assert _mod._catalog_size_estimate({"size_mb": 0.5}) == 500_000
-        for model in ({}, {"size_mb": 0}, {"size_mb": -1}, {"size_mb": True}, {"size_mb": "9"}):
+        for model in ({}, {"size_mb": 0}, {"size_mb": -1}, {"size_mb": "n/a"}, {"size_mb": None}):
             assert _mod._catalog_size_estimate(model) is None
 
     def test_storage_status_uses_the_nearest_existing_directory(self, tmp_path, monkeypatch):
