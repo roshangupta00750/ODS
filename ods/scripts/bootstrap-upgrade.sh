@@ -397,6 +397,12 @@ STATUSEOF
         rm -f "$_tmp" 2>/dev/null || true
         return 1
     fi
+    # The temp file is created private; the status itself holds no secrets.
+    # dashboard-api reads it as uid 1000, which is not the owner on every host.
+    if ! chmod 0644 "$_tmp"; then
+        rm -f "$_tmp" 2>/dev/null || true
+        return 1
+    fi
     if ! mv "$_tmp" "$STATUS_FILE"; then
         rm -f "$_tmp" 2>/dev/null || true
         return 1

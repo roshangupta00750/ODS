@@ -173,6 +173,9 @@ set -e
     || fail "bootstrap-upgrade must not promote a failed partial download"
 grep -q '"status": "failed"' "$install_dir/data/bootstrap-status.json" \
     || fail "bootstrap-upgrade must mark bootstrap-status failed"
+# dashboard-api runs as uid 1000, not necessarily the install owner.
+[[ "$(ls -l "$install_dir/data/bootstrap-status.json" | cut -c1-10)" == "-rw-r--r--" ]] \
+    || fail "bootstrap-status must be readable by dashboard-api (got $(ls -l "$install_dir/data/bootstrap-status.json" | cut -c1-10))"
 grep -Eq '"bytesDownloaded": [1-9][0-9]*' "$install_dir/data/bootstrap-status.json" \
     || fail "failed bootstrap-status must preserve downloaded byte count"
 grep -q '"bytesTotal": 100' "$install_dir/data/bootstrap-status.json" \
